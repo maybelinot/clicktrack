@@ -16,7 +16,14 @@ import yaml
 import warnings
 warnings.simplefilter('ignore')
 
+# Config for this module is under 'piwik'; eg
+# cat ~/.clicktrack (YAML)
+# piwik
+#     domain: ...
+#     idSite: ...
+#     ...
 DEFAULT_CONFIG = os.path.expanduser('~/.clicktrack')
+
 TODAY = dt.date.today().strftime("%Y-%m-%d")
 YESTERDAY = (dt.date.today() - dt.timedelta(days=1)).strftime("%Y-%m-%d")
 
@@ -28,41 +35,36 @@ def get_page_urls(filter_pattern=None, domain=None, idSite=None, date=None,
     '''Docs...'''
     config = os.path.expanduser(config or DEFAULT_CONFIG)
     with open(config) as _:
-        config = yaml.load(_)
+        _config = yaml.load(_) or {}
+        conf = _config.get('piwik') or {}
 
-    domain = domain or config.get('domain')
-    idSite = idSite or config.get('idSite')
+    domain = domain or conf.get('domain')
+    conf['idSite'] = idSite or conf.get('idSite')
     if domain is None:
         raise TypeError("Domain should be provided")
-    if idSite is None:
+    if conf['idSite'] is None:
         raise TypeError("idSite should be provided")
-    period = period or config.get('period')
+    conf['period'] = period or conf.get('period')
     # expected as str YYYY-MM-DD,YYY-MM-DD
-    date = date or config.get('date', '{},{}'.format(YESTERDAY, TODAY))
-    expanded = int(expanded or config.get('expanded', 1))
-    filter_limit = int(filter_limit or config.get('filter_limit', -1))
-    filter_column = filter_column or config.get('filter_column', 'label')
-    filter_pattern = filter_pattern or config.get('filter_pattern')
-    showColumns = showColumns or config.get('showColumns')
+    conf['date'] = date or conf.get('date', '{},{}'.format(YESTERDAY, TODAY))
+    conf['expanded'] = int(expanded or conf.get('expanded', 1))
+    conf['filter_limit'] = int(filter_limit or conf.get('filter_limit', -1))
+    conf['filter_column'] = filter_column or conf.get('filter_column', 'label')
+    conf['filter_pattern'] = filter_pattern or conf.get('filter_pattern')
+    # these should come in already as csv string
+    # eg, 'label, nb_hits, nb_visits'
+    conf['showColumns'] = showColumns or conf.get('showColumns')
+    conf['hideColumns'] = hideColumns or conf.get('hideColumns')
 
     '''list all available columns in the documentation strings'''
     payload = {
         'module': 'API',
         'method': 'Actions.getPageUrls',
-        'format': format or config.get('format'),
-        'idSite': idSite,
-        'period': period,
-        'date': date,
-        'expanded': expanded,
-        'filter_limit': filter_limit,
+        'format': format or conf.get('format'),
         'translateColumnNames': True,
         'language': 'en',
-        'filter_column': filter_column,
-        'filter_pattern': filter_pattern,
-        # eg, ['label', 'nb_hits', 'nb_visits']
-        'showColumns': showColumns,
-        'hideColumns': hideColumns,
     }
+    payload.update(conf)
 
     auth = HTTPKerberosAuth(mutual_authentication=OPTIONAL)
     resp = rq.get(domain, params=payload, verify=False, auth=auth)
