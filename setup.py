@@ -4,7 +4,7 @@
 # @Date:   2015-09-07 14:59:52
 # @Email:  etrott@redhat.com
 # @Last modified by:   etrott
-# @Last Modified time: 2015-09-23 14:19:07
+# @Last Modified time: 2015-10-05 11:03:49
 
 from setuptools import setup
 
@@ -26,7 +26,8 @@ __irequires__ = [
     'functioncache==0.92',
     'requests==2.7.0',
     'requests-kerberos==0.7.0', 
-    'pyyaml==3.11'
+    'pyyaml==3.11',
+    'bitly_api'
 ]
 __xrequires__ = {
     'tests': [
